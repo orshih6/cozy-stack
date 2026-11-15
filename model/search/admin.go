@@ -40,8 +40,8 @@ func Enable(ctx context.Context, inst *instance.Instance) error {
 	return pushJob(inst)
 }
 
-// Reset drops the checkpoint and the documents of an instance, and pushes a
-// job to index it again.
+// Reset drops the checkpoints and the documents of an instance (files and
+// scopes of its drives), and pushes a job to index it again.
 func Reset(ctx context.Context, inst *instance.Instance) error {
 	if config.GetConfig().Search == nil {
 		return ErrNotConfigured
@@ -51,6 +51,10 @@ func Reset(ctx context.Context, inst *instance.Instance) error {
 		return err
 	}
 	err := couchdb.DeleteCheckpoint(inst, consts.Files, checkpointDocID)
+	if err == nil {
+		// The scope docs are rebuilt from the sharings feed
+		err = couchdb.DeleteCheckpoint(inst, consts.Sharings, sharingsCheckpointDocID)
+	}
 	if err == nil {
 		err = purge.CleanInstance(inst.Domain)
 	}
