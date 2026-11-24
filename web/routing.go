@@ -232,6 +232,7 @@ func SetupRoutes(router *echo.Echo, services *stack.Services) error {
 		)
 		registry.Routes(router.Group("/registry", mws...))
 		data.Routes(router.Group("/data", mws...))
+		files.SetActivityPublisher(services.RabbitMQ)
 		files.Routes(router.Group("/files", mws...))
 		contacts.Routes(router.Group("/contacts", mws...))
 		intents.Routes(router.Group("/intents", mws...))

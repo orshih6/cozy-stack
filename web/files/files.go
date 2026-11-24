@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cozy/cozy-stack/model/driveactivity"
 	"github.com/cozy/cozy-stack/model/instance"
 	"github.com/cozy/cozy-stack/model/job"
 	"github.com/cozy/cozy-stack/model/note"
@@ -35,6 +36,7 @@ import (
 	"github.com/cozy/cozy-stack/pkg/jsonapi"
 	"github.com/cozy/cozy-stack/pkg/limits"
 	"github.com/cozy/cozy-stack/pkg/logger"
+	"github.com/cozy/cozy-stack/pkg/messaging"
 	"github.com/cozy/cozy-stack/pkg/metadata"
 	"github.com/cozy/cozy-stack/pkg/safehttp"
 	"github.com/cozy/cozy-stack/pkg/utils"
@@ -220,7 +222,34 @@ func createFileHandler(c echo.Context, fs vfs.VFS, sharedDrive *sharing.Sharing)
 		return nil, WrapVfsError(err)
 	}
 	maybeNotifyShareByLinkUpload(c, inst, doc.DocName, doc.ID(), doc.DirID, false)
+	publishFileCreated(c, inst, doc, sharedDrive)
 	return NewFile(doc, inst, sharedDrive), nil
+}
+
+// activity is where the activity of the files is published, nil until
+// SetActivityPublisher is called.
+var activity messaging.Publisher
+
+// SetActivityPublisher sets where the activity of the files is published.
+func SetActivityPublisher(pub messaging.Publisher) {
+	activity = pub
+}
+
+// publishFileCreated publishes the creation of a file in the personal drive.
+// A shared drive reports its activity as a digest instead (ADR 010).
+func publishFileCreated(c echo.Context, inst *instance.Instance, doc *vfs.FileDoc, sharedDrive *sharing.Sharing) {
+	if sharedDrive != nil {
+		return
+	}
+	byOwner := false
+	if perm, err := middlewares.GetPermission(c); err == nil {
+		switch perm.Type {
+		case permission.TypeShareByLink, permission.TypeSharePreview, permission.TypeShareInteract:
+		default:
+			byOwner = true
+		}
+	}
+	driveactivity.FileCreated(c.Request().Context(), activity, inst, doc, byOwner)
 }
 
 // maybeNotifyShareByLinkUpload sends a notification

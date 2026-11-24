@@ -546,6 +546,9 @@ contexts:
     # before publishing them on the activity exchange (ADR 010).
     drive_activity:
       window: 30s
+      # Publish an event per file created in a personal drive, for the Twake
+      # webhook gateway. Off by default: a sync can create thousands at once.
+      file_created: false
     # Redirect to a specific route of Cozy-Home after the onboarding
     # Format: appslug/#/path/to/route
     onboarded_redirection: home/#/discovery/?intro
