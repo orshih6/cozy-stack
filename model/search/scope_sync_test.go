@@ -49,6 +49,8 @@ func TestAffectedDrives(t *testing.T) {
 		{"created deep in a drive", []couchdb.Change{folderChange("new", "/HR/a/b/c")}, []string{"hr"}},
 		{"outside of the drives", []couchdb.Change{folderChange("new", "/Private")}, nil},
 		{"sibling with the same prefix", []couchdb.Change{folderChange("new", "/Teamwork")}, nil},
+		{"skipped folder created in a drive", []couchdb.Change{folderChange("new", "/Team/node_modules")}, []string{"team"}},
+		{"created under a skipped folder", []couchdb.Change{folderChange("new", "/Team/node_modules/pkg")}, nil},
 		{"moved out of a drive", []couchdb.Change{folderChange("old", "/Private/old")}, []string{"team"}},
 		{"moved from a drive to another", []couchdb.Change{folderChange("old", "/HR/old")}, []string{"team", "hr"}},
 		{"trashed", []couchdb.Change{folderChange("old", "/.cozy_trash/old")}, []string{"team"}},

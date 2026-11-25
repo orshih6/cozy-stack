@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"encoding/json"
+	"path"
 	"slices"
 	"strings"
 
@@ -140,8 +141,10 @@ func affectedDrives(domain string, folders, sharings []couchdb.Change, drives []
 				add(d.sharing)
 				continue
 			}
-			// Added to the tree: created or moved in
+			// Added to the tree: created or moved in, not under a skipped folder
+			// (left out of the keys, as in subdirIDs)
 			if !change.Deleted && d.rootPath != "" && !vfs.IsInTrash(folderPath) &&
+				!inSkippedTree(path.Dir(folderPath)) &&
 				strings.HasPrefix(folderPath, d.rootPath+"/") {
 				add(d.sharing)
 			}
