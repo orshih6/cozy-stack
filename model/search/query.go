@@ -1,6 +1,7 @@
 package search
 
 import (
+	"cmp"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/cozy/cozy-stack/model/instance"
 	"github.com/cozy/cozy-stack/pkg/opensearch"
+	"golang.org/x/text/unicode/norm"
 )
 
 const (
@@ -67,6 +69,8 @@ func Search(ctx context.Context, client *opensearch.Client, caller *instance.Ins
 	if err != nil {
 		return nil, err
 	}
+	// The names are indexed composed (NFC), so a pasted decomposed query matches
+	q = norm.NFC.String(q)
 	query := buildQuery(caller.Domain, q, slices.Sorted(maps.Keys(dirKeys)), slices.Sorted(maps.Keys(fileKeys)), limit, after)
 
 	var res struct {
@@ -86,7 +90,7 @@ func Search(ctx context.Context, client *opensearch.Client, caller *instance.Ins
 		doc := h.Source
 		hit := SearchHit{
 			DocID: doc.DocID, OwnerInstanceID: doc.OwnerInstanceID, DirID: doc.DirID,
-			Type: doc.Type, Name: doc.Name, Mime: doc.Mime, Class: doc.Class, UpdatedAt: doc.UpdatedAt,
+			Type: doc.Type, Name: cmp.Or(doc.DisplayName, doc.Name), Mime: doc.Mime, Class: doc.Class, UpdatedAt: doc.UpdatedAt,
 		}
 		if doc.OwnerInstanceID != caller.Domain {
 			hit.DriveID = dirKeys[doc.ScopedDirKey]
